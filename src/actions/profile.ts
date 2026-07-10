@@ -4,6 +4,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient, getUser } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { passwordResetRateLimit } from '@/lib/rate-limit'
+import { headers } from 'next/headers'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -121,4 +123,25 @@ export async function getProfile() {
     .eq('id', user.id)
     .single()
     return data
+}
+
+// ── Kirim link reset password ke email akun sendiri, dari halaman Settings ──
+export async function requestPasswordResetFromSettings() {
+  const user = await getUser()
+  if (!user || !user.email) return { error: 'Tidak terautentikasi' }
+
+  const { success } = await passwordResetRateLimit.limit(user.email.toLowerCase())
+  if (!success) {
+    return { error: 'Terlalu banyak percobaan. Coba lagi dalam beberapa menit.' }
+  }
+
+  const supabase = await createClient()
+  const origin = (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL!
+
+  const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+  })
+  if (error) return { error: 'Gagal mengirim email. Coba lagi.' }
+
+  return { success: true }
 }

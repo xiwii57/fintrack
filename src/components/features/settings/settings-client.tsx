@@ -8,6 +8,7 @@ import ProfileForm from './profile-form'
 import ChangePasswordForm from './change-password-form'
 import BackupRestore from './backup-restore'
 import type { Profile } from '@/types'
+import ResetPasswordEmail from './reset-password-email'
 
 const tabs = [
     { id: 'profile',  label: 'Profil',    icon: UserCircle2 },
@@ -77,6 +78,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
 
         {/* ── TAB: KEAMANAN ────────────────────────────────────────────── */}
         {activeTab === 'security' && (
+            <div className="space-y-4">
             <div className="bg-white rounded-xl border border-zinc-200">
             <div className="px-6 py-4 border-b border-zinc-100 flex items-center gap-3">
             <div className="w-8 h-8 bg-zinc-100 rounded-lg flex items-center justify-center">
@@ -89,6 +91,16 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
             </div>
             <div className="px-6 py-6">
             <ChangePasswordForm />
+            </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-zinc-200">
+            <div className="px-6 py-4 border-b border-zinc-100">
+            <p className="text-sm font-medium text-zinc-800">Reset via Email</p>
+            </div>
+            <div className="px-6 py-6">
+            <ResetPasswordEmail email={profile.email} />
+            </div>
             </div>
             </div>
         )}

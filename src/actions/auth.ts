@@ -4,6 +4,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { headers } from 'next/headers'
+import { passwordResetRateLimit } from '@/lib/rate-limit'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -90,4 +92,59 @@ export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/login')
+}
+
+// ── Kirim email reset password ───────────────────────────────────────────────
+export async function requestPasswordReset(formData: FormData) {
+  const turnstileToken = formData.get('turnstileToken') as string
+  if (!(await verifyTurnstile(turnstileToken))) {
+    return { error: 'Verifikasi keamanan gagal. Muat ulang halaman dan coba lagi.' }
+  }
+
+  const emailRaw = formData.get('email') as string
+  if (!emailRaw) return { error: 'Email wajib diisi' }
+  const email = emailRaw.trim().toLowerCase()
+
+  const { success } = await passwordResetRateLimit.limit(email)
+  if (!success) {
+    return { error: 'Terlalu banyak percobaan untuk email ini. Coba lagi dalam beberapa menit.' }
+  }
+
+  const supabase = await createClient()
+  const origin = (await headers()).get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL!
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+  })
+
+  // Selalu balas sukses walau email tidak terdaftar — cegah email enumeration,
+  // sama seperti pola di signUpWithEmail
+  if (error && !error.message.toLowerCase().includes('rate limit')) {
+    console.error('resetPasswordForEmail error:', error.message)
+  }
+
+  return { success: 'Kalau email terdaftar, link reset password sudah dikirim. Cek inbox kamu.' }
+}
+
+// ── Set password baru (dipanggil dari halaman /reset-password) ─────────────
+export async function updatePassword(formData: FormData) {
+  const password = formData.get('password') as string
+  const confirm = formData.get('confirm') as string
+
+  if (!password || password.length < 8) return { error: 'Password minimal 8 karakter' }
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password))
+    return { error: 'Password harus mengandung huruf dan angka' }
+    if (password !== confirm) return { error: 'Konfirmasi password tidak cocok' }
+
+    const supabase = await createClient()
+
+    // User harus punya sesi recovery yang valid (didapat dari klik link email),
+    // bukan sesi login biasa — exchangeCodeForSession di callback yang membuat ini
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Sesi reset password sudah tidak berlaku. Minta link baru.' }
+
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) return { error: error.message }
+
+    redirect('/dashboard')
 }

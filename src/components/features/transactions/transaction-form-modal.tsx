@@ -8,10 +8,19 @@ import { formatRupiah } from '@/lib/format'
 import { getCategoryIcon } from '@/components/features/categories/category-form-modal'
 import type { TransactionType } from '@/types'
 
+// components/features/transaction/transaction-form-modal.tsx
+
 type Category = { id: string; name: string; color: string; icon: string; type: TransactionType }
 type Account = { id: string; name: string; type: string; icon: string; color: string; balance: number }
-type Transaction = { id: string; type: TransactionType; amount: number; description: string; date: string; category_id: string | null }
-
+type Transaction = {
+  id: string
+  type: TransactionType
+  amount: number
+  description: string
+  date: string
+  category_id: string | null
+  account_id: string
+}
 export default function TransactionFormModal({
   categories, accounts, transaction, onClose, onSaved,
 }: {

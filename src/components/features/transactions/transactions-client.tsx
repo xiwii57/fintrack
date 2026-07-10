@@ -382,6 +382,7 @@ export default function TransactionsClient({
     {(isAddOpen || editing) && (
       <TransactionFormModal
       categories={categories}
+      accounts={accounts}
       transaction={editing}
       onClose={() => { setIsAddOpen(false); setEditing(null) }}
       onSaved={() => { router.refresh(); setIsAddOpen(false); setEditing(null) }}

@@ -11,6 +11,8 @@ import {
   BarChart2,
   Settings,
   TrendingUp,
+  Wallet,
+  Target,
   Menu,
   X,
 } from 'lucide-react'
@@ -18,7 +20,9 @@ import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard',    label: 'Dashboard',  icon: LayoutDashboard },
+{ href: '/accounts',     label: 'Dompet',     icon: Wallet },
 { href: '/transactions', label: 'Transaksi',  icon: ArrowLeftRight },
+{ href: '/goals',        label: 'Goals',      icon: Target },
 { href: '/categories',   label: 'Kategori',   icon: Tag },
 { href: '/reports',      label: 'Laporan',    icon: BarChart2 },
 { href: '/settings',     label: 'Pengaturan', icon: Settings },
@@ -51,9 +55,13 @@ export default function Sidebar() {
     <header className="lg:hidden fixed top-0 inset-x-0 h-14 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-4 z-40">
     <div className="flex items-center gap-2.5">
     <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center">
-    <TrendingUp className="w-3.5 h-3.5 text-zinc-900" />
+    <svg className="w-3.5 h-3.5 text-zinc-900" fill="none" viewBox="0 0 24 24">
+    <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="3" y="8" width="18" height="13" rx="3" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    <circle cx="16.5" cy="14.5" r="1.4" fill="currentColor" />
+    </svg>
     </div>
-    <span className="font-semibold text-white text-sm">FinTrack</span>
+    <span className="font-semibold text-white text-sm">Dompetin</span>
     </div>
     <button
     onClick={() => setIsOpen(true)}

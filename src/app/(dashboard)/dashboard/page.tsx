@@ -1,12 +1,14 @@
 import { getDashboardData } from '@/actions/transaction'
+import { getGoals } from '@/actions/goal'
 import { getUser, getProfile } from '@/lib/supabase/server'
 import DashboardClient from './dashboard-client'
 
 export default async function DashboardPage() {
-  const [user, profile, { data }] = await Promise.all([
+  const [user, profile, { data }, { data: goals }] = await Promise.all([
     getUser(),
-                                                      getProfile(),
-                                                      getDashboardData(),
+                                                                       getProfile(),
+                                                                       getDashboardData(),
+                                                                       getGoals(),
   ])
   return (
     <DashboardClient
@@ -20,6 +22,7 @@ export default async function DashboardPage() {
     accounts={data?.accounts ?? []}
     monthly={data?.monthly ?? []}
     recentTransactions={data?.recentTransactions ?? []}
+    goals={goals ?? []}
     />
   )
 }

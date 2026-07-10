@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { authRateLimit } from '@/lib/rate-limit'
 
 // ── Route config ─────────────────────────────────────────────────────────────
-const PROTECTED_PREFIXES = ['/dashboard', '/transactions', '/categories', '/reports', '/settings']
+const PROTECTED_PREFIXES = ['/dashboard', '/accounts', '/goals', '/transactions', '/categories', '/reports', '/settings']
 const AUTH_ROUTES        = ['/', '/login']
 
 // ── Nonce generator ───────────────────────────────────────────────────────────
@@ -56,6 +56,9 @@ function applySecurityHeaders(res: NextResponse, nonce: string, isAuthPage: bool
   res.headers.set('Permissions-Policy',
                   'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()'
   )
+  // Cegah window pihak lain (mis. tab hasil OAuth redirect) mengakses
+  // window.opener dari tab ini — mitigasi tabnabbing & cross-window leaks
+  res.headers.set('Cross-Origin-Opener-Policy', 'same-origin')
 
   if (process.env.NODE_ENV === 'production') {
     res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
@@ -74,6 +77,12 @@ function applySecurityHeaders(res: NextResponse, nonce: string, isAuthPage: bool
 }
 
 // ── IP helper ─────────────────────────────────────────────────────────────────
+// PENTING: header ini bisa dipalsukan client kalau app tidak berjalan di
+// belakang proxy tepercaya yang membersihkannya (Vercel & sejenisnya sudah
+// menangani ini otomatis). Kalau self-host di belakang reverse proxy sendiri
+// (nginx/Cloudflare Tunnel dll), pastikan proxy itu MENIMPA x-forwarded-for
+// dengan IP asli, bukan sekadar meneruskan header yang dikirim client —
+// kalau tidak, attacker bisa spoof header ini untuk mem-bypass rate limit.
 function getIp(req: NextRequest): string {
   return (
     req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??

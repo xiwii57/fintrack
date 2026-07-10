@@ -15,11 +15,13 @@ export default async function LoginPage() {
       <div className="bg-white rounded-2xl border border-zinc-200 p-8 shadow-sm">
       <div className="text-center mb-7">
       <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-4">
-      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24">
+      <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3" y="8" width="18" height="13" rx="3" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <circle cx="16.5" cy="14.5" r="1.4" fill="currentColor" />
       </svg>
       </div>
-      <h1 className="text-xl font-semibold text-zinc-900">FinTrack</h1>
+      <h1 className="text-xl font-semibold text-zinc-900">Dompetin</h1>
       <p className="text-sm text-zinc-500 mt-1">Catat keuangan kamu dengan mudah</p>
       </div>
       <Suspense fallback={null}>

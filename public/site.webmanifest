@@ -1,0 +1,8 @@
+{
+  "name": "Dompetin",
+  "short_name": "Dompetin",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }],
+  "theme_color": "#18181b",
+  "background_color": "#fafafa",
+  "display": "standalone"
+}

@@ -12,14 +12,17 @@ import {
 } from 'lucide-react'
 import { formatRupiah, formatShortDate } from '@/lib/format'
 import AddTransactionModal from '@/components/features/transactions/add-transaction-modal'
-import type { Transaction, MonthlySummary } from '@/types'
+import { getGoalIcon } from '@/lib/goal-icons'
+import type { Transaction, MonthlySummary, AccountWithBalance, GoalWithProgress } from '@/types'
 
 interface Props {
     user: { name: string; email: string; avatar: string | null }
     stats: { income: number; expense: number; balance: number; categoryBreakdown: { name: string; color: string; amount: number }[] } | null
     totalBalance: number
+    accounts: AccountWithBalance[]
     monthly: MonthlySummary[]
     recentTransactions: (Transaction & { category?: { name: string; color: string; icon: string } | null })[]
+    goals: GoalWithProgress[]
 }
 
 const RADIAN = Math.PI / 180
@@ -56,7 +59,7 @@ function sanitizeCsvField(val: string): string {
         return val
 }
 
-export default function DashboardClient({ user, stats, totalBalance, monthly, recentTransactions }: Props) {
+export default function DashboardClient({ user, stats, totalBalance, accounts, monthly, recentTransactions, goals }: Props) {
     const [showAdd, setShowAdd] = useState(false)
 
     const income = stats?.income ?? 0
@@ -134,12 +137,95 @@ export default function DashboardClient({ user, stats, totalBalance, monthly, re
         <p className={`text-3xl font-semibold ${totalBalance >= 0 ? 'text-white' : 'text-red-400'}`}>
         {formatRupiah(totalBalance)}
         </p>
-        <p className="text-xs text-zinc-500 mt-1">Akumulasi seluruh transaksi sejak awal</p>
+        <p className="text-xs text-zinc-500 mt-1">Akumulasi seluruh dompet</p>
         </div>
         <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
         <Wallet className="w-6 h-6 text-white" />
         </div>
         </div>
+
+        {/* Dompet — card per akun, ala Jago */}
+        {accounts.length > 0 && (
+            <div>
+            <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-zinc-700">Dompet</h2>
+            <a href="/accounts" className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
+            Kelola →
+            </a>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+            {accounts.map((acc) => (
+                <div
+                key={acc.id}
+                className="min-w-[170px] shrink-0 bg-white rounded-xl border border-zinc-200 p-4"
+                >
+                <div className="flex items-center gap-2 mb-3">
+                <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: acc.color + '20' }}
+                >
+                <Wallet className="w-4 h-4" style={{ color: acc.color }} />
+                </div>
+                <div className="min-w-0">
+                <p className="text-xs font-medium text-zinc-700 truncate">{acc.name}</p>
+                <p className="text-[10px] text-zinc-400 truncate">{acc.type}</p>
+                </div>
+                </div>
+                <p className={`text-base font-semibold ${acc.balance >= 0 ? 'text-zinc-900' : 'text-red-500'}`}>
+                {formatRupiah(acc.balance)}
+                </p>
+                </div>
+            ))}
+            </div>
+            </div>
+        )}
+
+        {/* Goals — preview 3 teratas, ala Dompet */}
+        {goals.length > 0 && (
+            <div>
+            <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-zinc-700">Goals</h2>
+            <a href="/goals" className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
+            Kelola →
+            </a>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+            {goals.slice(0, 3).map((goal) => {
+                const GoalIcon = getGoalIcon(goal.icon)
+                const percent = Math.min(goal.progress_percent, 100)
+                return (
+                    <div
+                    key={goal.id}
+                    className="min-w-[190px] shrink-0 bg-white rounded-xl border border-zinc-200 p-4"
+                    >
+                    <div className="flex items-center gap-2 mb-3">
+                    <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: goal.color + '20' }}
+                    >
+                    <GoalIcon className="w-4 h-4" style={{ color: goal.color }} />
+                    </div>
+                    <div className="min-w-0">
+                    <p className="text-xs font-medium text-zinc-700 truncate">{goal.name}</p>
+                    <p className="text-[10px] text-zinc-400 truncate">{Math.round(percent)}% tercapai</p>
+                    </div>
+                    </div>
+                    <p className="text-base font-semibold text-zinc-900">
+                    {formatRupiah(goal.progress_amount)}
+                    <span className="text-xs font-normal text-zinc-400"> / {formatRupiah(goal.target_amount)}</span>
+                    </p>
+                    <div className="mt-2 h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+                    <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${percent}%`, backgroundColor: goal.color }}
+                    />
+                    </div>
+                    </div>
+                )
+            })}
+            </div>
+            </div>
+        )}
 
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

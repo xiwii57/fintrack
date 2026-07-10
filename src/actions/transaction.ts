@@ -3,7 +3,7 @@
 
 import { createClient, getUser } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { TransactionType } from '@/types'
+import type { TransactionType, AccountWithBalance } from '@/types'
 
 // ── Helper: pastikan category_id & account_id benar milik user yang login ──
 async function verifyOwnership(
@@ -129,24 +129,31 @@ export async function getDashboardData() {
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10)
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
 
-  const [{ data: allTx, error: e1 }, { data: recentTx, error: e2 }, { data: accounts, error: e3 }] = await Promise.all([
+  const [
+    { data: allTx, error: e1 },
+    { data: recentTx, error: e2 },
+    accountsResult,
+  ] = await Promise.all([
     supabase
     .from('transactions')
     .select('type, amount, date, category:categories(name, color)')
     .eq('user_id', user.id)
     .gte('date', sixMonthsAgo)
     .lte('date', monthEnd),
-                                                                                                                       supabase
-                                                                                                                       .from('transactions')
-                                                                                                                       .select('*, category:categories(id, name, icon, color, type), account:accounts(id, name, icon, color, type)')
-                                                                                                                       .eq('user_id', user.id)
-                                                                                                                       .order('date', { ascending: false })
-                                                                                                                       .order('created_at', { ascending: false })
-                                                                                                                       .limit(5),
-                                                                                                                       supabase.rpc('get_accounts_with_balance'), // no param — RPC kunci sendiri ke auth.uid()
+                        supabase
+                        .from('transactions')
+                        .select('*, category:categories(id, name, icon, color, type), account:accounts(id, name, icon, color, type)')
+                        .eq('user_id', user.id)
+                        .order('date', { ascending: false })
+                        .order('created_at', { ascending: false })
+                        .limit(5),
+                        supabase.rpc('get_accounts_with_balance'),
   ])
 
+  const e3 = accountsResult.error
   if (e1 || e2 || e3) return { data: null, error: (e1 ?? e2 ?? e3)!.message }
+
+  const accounts = (accountsResult.data ?? []) as AccountWithBalance[]
 
   const thisMonth = (allTx ?? []).filter((t) => t.date >= monthStart)
   const income = thisMonth.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
@@ -176,13 +183,13 @@ export async function getDashboardData() {
         else m.expense += Number(t.amount)
   }
 
-  const totalBalance = (accounts ?? []).reduce((s, a) => s + Number(a.balance), 0)
+  const totalBalance = accounts.reduce((s, a) => s + Number(a.balance), 0)
 
   return {
     data: {
       stats: { income, expense, balance: income - expense, categoryBreakdown },
       totalBalance,
-      accounts: accounts ?? [],
+      accounts,
       monthly: months.map(({ label, income, expense }) => ({ month: label, income, expense, balance: income - expense })),
       recentTransactions: recentTx ?? [],
     },

@@ -6,13 +6,16 @@ const redis = new Redis({
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
 
-// Sliding window: paling akurat, tidak ada "reset tiba-tiba" di batas window.
-// Cache di edge selama beberapa detik agar IP yang sama beruntun tidak selalu
-// round-trip ke Redis — ini yang bikin middleware tetap ringan.
+// ephemeralCache: menyimpan hasil limit check di memori edge selama beberapa
+// detik, jadi request beruntun dari identifier yang sama tidak selalu
+// round-trip ke Redis — inilah yang bikin middleware tetap ringan/cepat.
+const ephemeralCache = new Map()
+
 export const authRateLimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(20, '60 s'),
-                                           analytics: false, // matikan biar tidak nambah 1 request tambahan per call
+                                           analytics: false,
+                                           ephemeralCache,
                                            prefix: 'ratelimit:auth',
 })
 
@@ -20,5 +23,14 @@ export const accountRateLimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(10, '60 s'),
                                               analytics: false,
+                                              ephemeralCache,
                                               prefix: 'ratelimit:account',
+})
+
+export const passwordResetRateLimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(3, '15 m'),
+                                                    analytics: false,
+                                                    ephemeralCache,
+                                                    prefix: 'ratelimit:password-reset',
 })

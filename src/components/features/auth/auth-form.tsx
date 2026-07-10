@@ -5,9 +5,9 @@ import { useState, useTransition, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { createClient } from '@/lib/supabase/client'
-import { signInWithEmail, signUpWithEmail } from '@/actions/auth'
+import { signInWithEmail, signUpWithEmail, requestPasswordReset } from '@/actions/auth'
 
-type Mode = 'login' | 'register'
+type Mode = 'login' | 'register' | 'forgot'
 
 function GoogleIcon() {
   return (
@@ -90,7 +90,9 @@ export default function AuthForm() {
       startTransition(async () => {
         const result = mode === 'login'
       ? await signInWithEmail(formData)
-      : await signUpWithEmail(formData)
+      : mode === 'register'
+      ? await signUpWithEmail(formData)
+      : await requestPasswordReset(formData)
 
       if (!result) return
         if ('error' in result) {
@@ -113,23 +115,34 @@ export default function AuthForm() {
   return (
     <div className="space-y-5">
 
-    {/* Tab toggle */}
-    <div className="flex bg-zinc-100 rounded-lg p-1 gap-1">
-    {(['login', 'register'] as Mode[]).map(m => (
-      <button
-      key={m}
-      type="button"
-      onClick={() => switchMode(m)}
-      className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-        mode === m
-        ? 'bg-white text-zinc-900 shadow-sm'
-        : 'text-zinc-500 hover:text-zinc-700'
-      }`}
-      >
-      {m === 'login' ? 'Masuk' : 'Daftar'}
-      </button>
-    ))}
-    </div>
+    {/* Tab toggle — disembunyikan saat mode forgot */}
+    {mode !== 'forgot' && (
+      <div className="flex bg-zinc-100 rounded-lg p-1 gap-1">
+      {(['login', 'register'] as Mode[]).map(m => (
+        <button
+        key={m}
+        type="button"
+        onClick={() => switchMode(m)}
+        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
+          mode === m
+          ? 'bg-white text-zinc-900 shadow-sm'
+          : 'text-zinc-500 hover:text-zinc-700'
+        }`}
+        >
+        {m === 'login' ? 'Masuk' : 'Daftar'}
+        </button>
+      ))}
+      </div>
+    )}
+
+    {mode === 'forgot' && (
+      <div>
+      <p className="text-sm font-medium text-zinc-900">Lupa Password</p>
+      <p className="text-xs text-zinc-400 mt-1">
+      Masukkan email akunmu, kami kirim link untuk reset password.
+      </p>
+      </div>
+    )}
 
     {/* Feedback */}
     {feedback && (
@@ -142,23 +155,26 @@ export default function AuthForm() {
       </div>
     )}
 
-    {/* Google button */}
-    <button
-    type="button"
-    onClick={handleGoogle}
-    disabled={isLoading}
-    className="w-full flex items-center justify-center gap-2.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-    {googleLoading ? <Spinner /> : <GoogleIcon />}
-    {mode === 'login' ? 'Masuk' : 'Daftar'} dengan Google
-    </button>
+    {/* Google button — disembunyikan saat mode forgot */}
+    {mode !== 'forgot' && (
+      <>
+      <button
+      type="button"
+      onClick={handleGoogle}
+      disabled={isLoading}
+      className="w-full flex items-center justify-center gap-2.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+      {googleLoading ? <Spinner /> : <GoogleIcon />}
+      {mode === 'login' ? 'Masuk' : 'Daftar'} dengan Google
+      </button>
 
-    {/* Divider */}
-    <div className="flex items-center gap-3">
-    <div className="flex-1 h-px bg-zinc-100" />
-    <span className="text-xs text-zinc-400">atau</span>
-    <div className="flex-1 h-px bg-zinc-100" />
-    </div>
+      <div className="flex items-center gap-3">
+      <div className="flex-1 h-px bg-zinc-100" />
+      <span className="text-xs text-zinc-400">atau</span>
+      <div className="flex-1 h-px bg-zinc-100" />
+      </div>
+      </>
+    )}
 
     {/* Email form */}
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -186,18 +202,30 @@ export default function AuthForm() {
     className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition"
     />
     </div>
-    <div>
-    <label className="block text-xs font-medium text-zinc-600 mb-1.5">Password</label>
-    <input
-    name="password"
-    type="password"
-    required
-    minLength={6}
-    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-    placeholder={mode === 'login' ? '••••••••' : 'Minimal 6 karakter'}
-    className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition"
-    />
-    </div>
+
+    {mode !== 'forgot' && (
+      <div>
+      <label className="block text-xs font-medium text-zinc-600 mb-1.5">Password</label>
+      <input
+      name="password"
+      type="password"
+      required
+      minLength={6}
+      autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+      placeholder={mode === 'login' ? '••••••••' : 'Minimal 6 karakter'}
+      className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition"
+      />
+      {mode === 'login' && (
+        <button
+        type="button"
+        onClick={() => switchMode('forgot')}
+        className="text-xs text-zinc-400 hover:text-zinc-600 mt-1.5 transition-colors"
+        >
+        Lupa password?
+        </button>
+      )}
+      </div>
+    )}
 
     {/* Turnstile widget */}
     <div className="flex justify-center pt-1">
@@ -217,10 +245,20 @@ export default function AuthForm() {
     >
     {isPending ? <Spinner /> : null}
     {isPending
-      ? (mode === 'login' ? 'Masuk...' : 'Mendaftarkan...')
-      : (mode === 'login' ? 'Masuk' : 'Buat akun')
+      ? (mode === 'login' ? 'Masuk...' : mode === 'register' ? 'Mendaftarkan...' : 'Mengirim...')
+      : (mode === 'login' ? 'Masuk' : mode === 'register' ? 'Buat akun' : 'Kirim Link Reset')
     }
     </button>
+
+    {mode === 'forgot' && (
+      <button
+      type="button"
+      onClick={() => switchMode('login')}
+      className="w-full text-center text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
+      >
+      ← Kembali ke halaman masuk
+      </button>
+    )}
     </form>
     </div>
   )

@@ -4,16 +4,18 @@
 import { useEffect, useState, useTransition } from 'react'
 import { X, Loader2, Check } from 'lucide-react'
 import { addTransaction, getCategories } from '@/actions/transaction'
+import { getAccounts } from '@/actions/account'
 import { formatRupiah } from '@/lib/format'
 import { getCategoryIcon } from '@/components/features/categories/category-form-modal'
 import { useRouter } from 'next/navigation'
-import type { Category, TransactionType } from '@/types'
+import type { Category, TransactionType, AccountWithBalance } from '@/types'
 
 export default function AddTransactionModal({ onClose }: { onClose: () => void }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [type, setType] = useState<TransactionType>('expense')
   const [categories, setCategories] = useState<Category[]>([])
+  const [accounts, setAccounts] = useState<AccountWithBalance[]>([])
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
@@ -21,6 +23,7 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
     amount: '',
     description: '',
     category_id: '',
+    account_id: '',
     date: new Date().toISOString().slice(0, 10),
   })
 
@@ -30,6 +33,16 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
       setForm(f => ({ ...f, category_id: '' }))
     })
   }, [type])
+
+  // Dompet cuma perlu di-fetch sekali saat modal dibuka, gak bergantung ke `type`
+  useEffect(() => {
+    getAccounts().then(r => {
+      const data = r.data ?? []
+      setAccounts(data)
+      // auto-pilih dompet pertama biar user gak wajib klik kalau cuma punya 1
+      setForm(f => ({ ...f, account_id: f.account_id || data[0]?.id || '' }))
+    })
+  }, [])
 
   // Tutup dengan Escape
   useEffect(() => {
@@ -50,24 +63,26 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
     if (!amount || amount <= 0) return setError('Nominal harus lebih dari 0')
       if (!form.description.trim()) return setError('Deskripsi tidak boleh kosong')
         if (!form.category_id) return setError('Pilih kategori terlebih dahulu')
-          if (!form.date) return setError('Tanggal harus diisi')
+          if (!form.account_id) return setError('Pilih dompet terlebih dahulu')
+            if (!form.date) return setError('Tanggal harus diisi')
 
-            startTransition(async () => {
-              const result = await addTransaction({
-                type,
-                amount,
-                description: form.description.trim(),
-                                                  category_id: form.category_id,
-                                                  date: form.date,
+              startTransition(async () => {
+                const result = await addTransaction({
+                  type,
+                  amount,
+                  description: form.description.trim(),
+                                                    category_id: form.category_id,
+                                                    account_id: form.account_id,
+                                                    date: form.date,
+                })
+                if (result.error) {
+                  setError(result.error)
+                } else {
+                  setSuccess(true)
+                  router.refresh()
+                  setTimeout(onClose, 600)
+                }
               })
-              if (result.error) {
-                setError(result.error)
-              } else {
-                setSuccess(true)
-                router.refresh()
-                setTimeout(onClose, 600)
-              }
-            })
   }
 
   return (
@@ -77,10 +92,8 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
     >
     <div className="relative w-full sm:max-w-md bg-white sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95dvh]">
 
-    {/* Color accent bar — follows type */}
     <div className={`h-1 w-full transition-colors duration-300 ${type === 'income' ? 'bg-emerald-500' : 'bg-red-500'}`} />
 
-    {/* Header */}
     <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
     <h2 className="text-base font-semibold text-zinc-900">Transaksi Baru</h2>
     <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
@@ -91,7 +104,6 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
     <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
     <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
 
-    {/* Type toggle */}
     <div className="grid grid-cols-2 gap-2">
     {(['expense', 'income'] as TransactionType[]).map(t => (
       <button
@@ -111,7 +123,6 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
     ))}
     </div>
 
-    {/* Amount — large display */}
     <div>
     <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2 block">Nominal</label>
     <div className="relative flex items-center border-b-2 border-zinc-100 focus-within:border-zinc-900 transition-colors pb-2">
@@ -130,7 +141,6 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
     )}
     </div>
 
-    {/* Description */}
     <div>
     <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2 block">Deskripsi</label>
     <input
@@ -143,7 +153,26 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
     />
     </div>
 
-    {/* Category — visual picker */}
+    {/* Dompet */}
+    <div>
+    <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2 block">Dompet</label>
+    {accounts.length === 0 ? (
+      <p className="text-sm text-zinc-400 py-2">
+      Belum ada dompet. <a href="/accounts" className="text-zinc-600 underline">Buat sekarang</a>
+      </p>
+    ) : (
+      <select
+      value={form.account_id}
+      onChange={e => setForm(f => ({ ...f, account_id: e.target.value }))}
+      className="w-full px-4 py-2.5 text-sm border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition"
+      >
+      {accounts.map(acc => (
+        <option key={acc.id} value={acc.id}>{acc.name} · {formatRupiah(acc.balance)}</option>
+      ))}
+      </select>
+    )}
+    </div>
+
     <div>
     <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2 block">Kategori</label>
     {categories.length === 0 ? (
@@ -180,7 +209,6 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
     )}
     </div>
 
-    {/* Date */}
     <div>
     <label className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2 block">Tanggal</label>
     <input
@@ -194,7 +222,6 @@ export default function AddTransactionModal({ onClose }: { onClose: () => void }
 
     </div>
 
-    {/* Footer */}
     <div className="px-5 py-4 border-t border-zinc-100 space-y-3">
     {error && (
       <p className="text-sm text-red-500 bg-red-50 px-3 py-2.5 rounded-xl">{error}</p>

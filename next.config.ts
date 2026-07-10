@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts'],
   },
-
   images: {
     remotePatterns: [
       {
@@ -23,25 +22,13 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: false,
     contentSecurityPolicy: "default-src 'none'; script-src 'none'; sandbox;",
   },
-
   // Matikan header X-Powered-By
   poweredByHeader: false,
-
-  // Paksa HTTPS di production
-  ...(process.env.NODE_ENV === 'production' && {
-    async redirects() {
-      return [
-        {
-          source: '/(.*)',
-      has: [{ type: 'header', key: 'x-forwarded-proto', value: 'http' }],
-      destination: 'https://%HOST%/:path*',
-      permanent: true,
-        },
-      ]
-    },
-  }),
-
-  // Header fallback — aktif kalau middleware tidak jalan (static export, dll)
+  // Header fallback — aktif kalau middleware tidak jalan (static export, dll).
+  // Cache-Control untuk /_next/static TIDAK perlu diset manual di sini —
+  // Next.js sudah otomatis mengirim immutable cache 1 tahun untuk semua
+  // build asset di production. Menimpanya manual cuma menimbulkan warning
+  // build dan berisiko konflik dengan cache invalidation Next.js saat dev.
   async headers() {
     return [
       {
@@ -60,13 +47,6 @@ const nextConfig: NextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload',
           },
-        ],
-      },
-      // Cache agresif untuk aset statis
-      {
-        source: '/_next/static/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
     ]

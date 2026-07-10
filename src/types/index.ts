@@ -67,3 +67,28 @@ export interface MonthlySummary {
   expense: number
   balance: number
 }
+
+export type AccountWithBalance = {
+  id: string
+  name: string
+  type: string
+  icon: string
+  color: string
+  opening_balance: number
+  balance: number
+  created_at: string
+}
+
+export type GoalWithProgress = {
+  id: string
+  name: string
+  target_amount: number
+  progress_amount: number
+  progress_percent: number
+  deadline: string | null
+  icon: string
+  color: string
+  account_id: string | null
+  account_name: string | null
+  created_at: string
+}
