@@ -6,6 +6,7 @@ import { authRateLimit } from '@/lib/rate-limit'
 const PROTECTED_PREFIXES = ['/dashboard', '/accounts', '/goals', '/transactions', '/categories', '/reports', '/settings']
 const AUTH_ROUTES        = ['/', '/login']
 
+
 // ── Nonce generator ───────────────────────────────────────────────────────────
 function generateNonce(): string {
   const array = new Uint8Array(16)
@@ -93,7 +94,15 @@ function getIp(req: NextRequest): string {
 
 // ── Middleware utama ──────────────────────────────────────────────────────────
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, search } = request.nextUrl
+  const host = request.headers.get('host') ?? ''
+
+  if (host.endsWith('.vercel.app')) {
+    return NextResponse.redirect(
+      new URL(`${pathname}${search}`, 'https://dompetin.site'),
+                                 308
+    )
+  }
   const nonce = generateNonce()
 
   // ── Rate limiting untuk endpoint auth ────────────────────────────────────
