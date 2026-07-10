@@ -73,8 +73,8 @@ export default function PrivacyPage() {
             <h2 className="text-base font-medium text-zinc-800">7. Kontak</h2>
             <p className="text-sm text-zinc-600 leading-relaxed">
             Ada pertanyaan seputar privasi? Hubungi kami di{' '}
-            <a href="mailto:raehanramadhanq1@gmail.com.com" className="text-zinc-900 underline">
-            raehanramadhanq1@gmail.com
+            <a href="mailto:muhamadraehan949@gmail.com" className="text-zinc-900 underline">
+            muhamadraehan949@gmail.com
             </a>
             .
             </p>
