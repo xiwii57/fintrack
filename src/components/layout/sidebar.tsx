@@ -106,7 +106,7 @@ export default function Sidebar() {
     role="dialog"
     aria-modal={isOpen}
     className={cn(
-      'fixed inset-y-0 left-0 z-50 w-72 lg:w-64 h-screen',
+      'fixed inset-y-0 left-0 z-50 w-72 lg:w-64 h-dvh',
       'bg-zinc-950 flex flex-col shrink-0 border-r border-zinc-800/80 transition-transform duration-200 ease-in-out lg:translate-x-0',
       isOpen ? 'translate-x-0' : '-translate-x-full'
     )}
