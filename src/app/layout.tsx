@@ -1,11 +1,14 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 import { headers } from 'next/headers'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
-
+const inter = localFont({
+  src: './fonts/InterVariable.woff2',
+  variable: '--font-inter',
+  display: 'swap',
+})
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dompetin.app'
 
 export const metadata: Metadata = {

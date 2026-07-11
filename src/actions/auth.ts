@@ -40,8 +40,16 @@ export async function signInWithEmail(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) return { error: error.message }
+
+  // RPC idempotent (ON CONFLICT DO NOTHING) — aman dipanggil setiap login,
+  // bukan cuma sekali. Ini jaring pengaman kalau kategori default gagal
+  // dibuat saat daftar (mis. karena belum konfirmasi email saat itu).
+  if (data.user) {
+    await supabase.rpc('create_default_categories', { user_uuid: data.user.id })
+  }
+
   redirect('/dashboard')
 }
 
@@ -71,21 +79,27 @@ export async function signUpWithEmail(formData: FormData) {
   }
   if (!data.user) return { error: 'Gagal membuat akun.' }
 
-  const { error: profileError } = await supabase
+  // Row profiles sudah otomatis dibuat oleh trigger handle_new_user() saat
+  // auth.users di-insert. Di sini kita cuma perlu UPDATE flag is_registered
+  // jadi true, memakai service role (supabaseAdmin) — BUKAN client biasa —
+  // karena saat Confirm Email aktif, belum ada sesi user di request ini
+  // (auth.uid() masih null), jadi RLS policy insert/update biasa pasti gagal.
+  const { error: profileError } = await supabaseAdmin
   .from('profiles')
-  .insert({
-    id: data.user.id,
-    email,
-    full_name: name,
-    is_registered: true,
-  })
+  .update({ full_name: name, is_registered: true })
+  .eq('id', data.user.id)
+
   if (profileError) {
+    console.error('SIGNUP_PROFILE_UPDATE_ERROR:', profileError.message)
     await supabaseAdmin.auth.admin.deleteUser(data.user.id)
     return { error: 'Gagal menyimpan data profil. Coba lagi.' }
   }
 
-  await supabase.rpc('create_default_categories', { user_uuid: data.user.id })
-  return { success: 'Akun berhasil dibuat! Kamu sudah bisa masuk.' }
+  // create_default_categories TIDAK dipanggil di sini — dipindah ke
+  // signInWithEmail, karena RPC ini juga butuh auth.uid() yang valid,
+  // yang belum tersedia sebelum user konfirmasi email dan login pertama kali.
+
+  return { success: 'Akun berhasil dibuat! Cek email kamu untuk konfirmasi sebelum masuk.' }
 }
 
 export async function signOut() {

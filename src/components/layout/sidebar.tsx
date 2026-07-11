@@ -108,7 +108,7 @@ export default function Sidebar() {
     </button>
     </div>
 
-    <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+    <nav className="flex-1 min-h-0 px-3 py-4 space-y-0.5 overflow-y-auto">
     {navItems.map(({ href, label, icon: Icon }) => {
       const active = pathname === href || pathname.startsWith(href + '/')
       return (
@@ -129,8 +129,8 @@ export default function Sidebar() {
     })}
     </nav>
 
-    <div className="px-3 py-4 border-t border-zinc-800">
-    <LogoutButton />
+    <div className="shrink-0 px-3 py-4 border-t border-zinc-800">
+      <LogoutButton />
     </div>
     </aside>
     </>
