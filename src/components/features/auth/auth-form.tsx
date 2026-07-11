@@ -243,13 +243,13 @@ export default function AuthForm() {
       )}
 
       {/* Turnstile widget */}
-      <div className="flex justify-center pt-1">
       <Turnstile
       key={turnstileKey}
       siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
       onSuccess={(token) => setTurnstileToken(token)}
       onExpire={() => setTurnstileToken('')}
       onError={() => setTurnstileToken('')}
+      options={{ theme: 'light' }}
       />
       </div>
 
