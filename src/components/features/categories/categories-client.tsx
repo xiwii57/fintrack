@@ -149,7 +149,7 @@ export default function CategoriesClient({ categories }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-0.5">
           <button
           onClick={() => openEdit(cat)}
           className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"

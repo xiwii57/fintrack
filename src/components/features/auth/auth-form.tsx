@@ -227,40 +227,55 @@ export default function AuthForm() {
       </div>
     )}
 
-    {/* Turnstile widget */}
-    <div className="flex justify-center pt-1">
-    <Turnstile
-    key={turnstileKey}
-    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-    onSuccess={(token) => setTurnstileToken(token)}
-    onExpire={() => setTurnstileToken('')}
-    onError={() => setTurnstileToken('')}
-    />
-    </div>
+    {/* "Ingat saya" — cuma relevan di mode login (register/forgot tidak
+      membuat sesi langsung, jadi checkbox ini tidak berarti apa-apa di sana) */}
+      {mode === 'login' && (
+        <label className="flex items-center gap-2 select-none cursor-pointer pt-0.5">
+        <input
+        type="checkbox"
+        name="remember"
+        className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900/10 focus:ring-offset-0"
+        />
+        <span className="text-xs text-zinc-500">
+        Ingat saya selama 30 hari di perangkat ini
+        </span>
+        </label>
+      )}
 
-    <button
-    type="submit"
-    disabled={isLoading}
-    className="w-full flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 active:bg-black text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1"
-    >
-    {isPending ? <Spinner /> : null}
-    {isPending
-      ? (mode === 'login' ? 'Masuk...' : mode === 'register' ? 'Mendaftarkan...' : 'Mengirim...')
-      : (mode === 'login' ? 'Masuk' : mode === 'register' ? 'Buat akun' : 'Kirim Link Reset')
-    }
-    </button>
+      {/* Turnstile widget */}
+      <div className="flex justify-center pt-1">
+      <Turnstile
+      key={turnstileKey}
+      siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+      onSuccess={(token) => setTurnstileToken(token)}
+      onExpire={() => setTurnstileToken('')}
+      onError={() => setTurnstileToken('')}
+      />
+      </div>
 
-    {mode === 'forgot' && (
       <button
-      type="button"
-      onClick={() => switchMode('login')}
-      className="w-full text-center text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
+      type="submit"
+      disabled={isLoading}
+      className="w-full flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 active:bg-black text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1"
       >
-      ← Kembali ke halaman masuk
+      {isPending ? <Spinner /> : null}
+      {isPending
+        ? (mode === 'login' ? 'Masuk...' : mode === 'register' ? 'Mendaftarkan...' : 'Mengirim...')
+        : (mode === 'login' ? 'Masuk' : mode === 'register' ? 'Buat akun' : 'Kirim Link Reset')
+      }
       </button>
-    )}
-    </form>
-    </div>
+
+      {mode === 'forgot' && (
+        <button
+        type="button"
+        onClick={() => switchMode('login')}
+        className="w-full text-center text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
+        >
+        ← Kembali ke halaman masuk
+        </button>
+      )}
+      </form>
+      </div>
   )
 }
 

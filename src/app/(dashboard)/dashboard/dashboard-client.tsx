@@ -84,7 +84,7 @@ export default function DashboardClient({ user, stats, totalBalance, accounts, m
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = `fintrack-${new Date().toISOString().slice(0, 10)}.csv`
+            a.download = `dompetin-${new Date().toISOString().slice(0, 10)}.csv`
             a.click()
             URL.revokeObjectURL(url)
     }

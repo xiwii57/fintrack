@@ -6,6 +6,10 @@ import { authRateLimit } from '@/lib/rate-limit'
 const PROTECTED_PREFIXES = ['/dashboard', '/accounts', '/goals', '/transactions', '/categories', '/reports', '/settings']
 const AUTH_ROUTES        = ['/', '/login']
 
+// Sama seperti di lib/supabase/server.ts — nama cookie flag "Ingat saya" dan
+// durasi rolling-nya kalau flag itu aktif.
+const REMEMBER_COOKIE = 'dompetin-remember'
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 hari, dalam detik
 
 // ── Nonce generator ───────────────────────────────────────────────────────────
 function generateNonce(): string {
@@ -121,6 +125,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Baca pilihan "Ingat saya" yang disimpan saat login. Kalau tidak ada
+  // (belum pernah login / tidak dicentang), default-nya session cookie biasa.
+  const remember = request.cookies.get(REMEMBER_COOKIE)?.value === '1'
+
   // ── Supabase SSR client ───────────────────────────────────────────────────
   let supabaseResponse = NextResponse.next({ request })
 
@@ -133,9 +141,14 @@ export async function middleware(request: NextRequest) {
                                       setAll(cookiesToSet) {
                                         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
                                         supabaseResponse = NextResponse.next({ request })
-                                        cookiesToSet.forEach(({ name, value, options }) =>
-                                        supabaseResponse.cookies.set(name, value, options)
-                                        )
+                                        cookiesToSet.forEach(({ name, value, options }) => {
+                                          const finalOptions = remember
+                                          // "Ingat saya" aktif: paksa rolling 30 hari tiap kali token di-refresh.
+                                          ? { ...options, maxAge: COOKIE_MAX_AGE }
+                                          // Tidak diingat: biarkan apa adanya dari Supabase (cookie sesi biasa).
+                                          : options
+                                          supabaseResponse.cookies.set(name, value, finalOptions)
+                                        })
                                       },
       },
     }

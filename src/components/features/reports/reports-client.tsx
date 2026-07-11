@@ -188,78 +188,89 @@ function exportToCSV(data: ReportData, start: string, end: string) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `fintrack-laporan-${start}-${end}.csv`
+  a.download = `dompetin-laporan-${start}-${end}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
 
 function exportToPDF(data: ReportData, start: string, end: string) {
-  // noopener,noreferrer mencegah window baru mengakses `window.opener`
-  // (reverse tabnabbing) dan mencegah kebocoran header Referer.
-  const win = window.open('', '_blank', 'noopener,noreferrer')
-  if (!win) return
+  // Catatan: sengaja TIDAK memakai flag 'noopener'/'noreferrer' di sini.
+  // Window.open() dengan noopener nyaris selalu mengembalikan null di browser
+  // modern (karena referensi balik ke window baru memang diputus), sehingga
+  // `win` jadi null dan fungsi ini gagal total secara diam-diam.
+  // Risiko reverse-tabnabbing yang biasanya dicegah noopener tidak relevan
+  // di sini karena window baru hanya diisi konten lokal (document.write),
+  // bukan navigasi ke URL eksternal yang bisa dikontrol pihak lain.
+  const win = window.open('', '_blank')
+  if (!win) {
+    alert('Popup diblokir browser. Izinkan popup untuk situs ini lalu coba lagi.')
+    return
+  }
+  // Putus referensi window.opener secara manual sebagai lapisan pengaman tambahan,
+  // tanpa membuat window.open() mengembalikan null.
+  win.opener = null
 
-    const txRows = data.transactions.map(t => `
-    <tr>
-    <td>${sanitize(t.date)}</td>
-    <td>${sanitize(t.description || '—')}</td>
-    <td>${sanitize(t.category?.name ?? '—')}</td>
-    <td class="${t.type}">${t.type === 'income' ? '+' : '−'}${formatRupiah(t.amount)}</td>
-    </tr>`).join('')
+  const txRows = data.transactions.map(t => `
+  <tr>
+  <td>${sanitize(t.date)}</td>
+  <td>${sanitize(t.description || '—')}</td>
+  <td>${sanitize(t.category?.name ?? '—')}</td>
+  <td class="${t.type}">${t.type === 'income' ? '+' : '−'}${formatRupiah(t.amount)}</td>
+  </tr>`).join('')
 
-    const catRows = (cats: CategoryBreakdown[]) => cats.map(c => `
-    <tr>
-    <td>${sanitize(c.name)}</td>
-    <td>${c.count}x</td>
-    <td>${c.percentage.toFixed(1)}%</td>
-    <td>${formatRupiah(c.total)}</td>
-    </tr>`).join('')
+  const catRows = (cats: CategoryBreakdown[]) => cats.map(c => `
+  <tr>
+  <td>${sanitize(c.name)}</td>
+  <td>${c.count}x</td>
+  <td>${c.percentage.toFixed(1)}%</td>
+  <td>${formatRupiah(c.total)}</td>
+  </tr>`).join('')
 
-    win.document.write(`<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
-    <title>Laporan FinTrack</title>
-    <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;padding:48px;font-size:13px;line-height:1.5}
-    .top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px;padding-bottom:20px;border-bottom:2px solid #111}
-    .brand{font-size:22px;font-weight:700;letter-spacing:-0.5px}
-    .meta{font-size:12px;color:#6b7280;margin-top:4px}
-    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
-    .kpi-card{padding:16px 20px;border-radius:10px;border:1px solid #e5e7eb}
-    .kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:6px}
-    .kpi-value{font-size:18px;font-weight:700}
-    .green{color:#059669}.red{color:#dc2626}
-    h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:24px 0 10px;padding-bottom:8px;border-bottom:1px solid #f3f4f6}
-    table{width:100%;border-collapse:collapse}
-    th{text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;padding:8px 12px;background:#f9fafb;border-bottom:1px solid #f3f4f6}
-    td{padding:9px 12px;border-bottom:1px solid #f9fafb;font-size:12px}
-    .income{color:#059669;font-weight:600}.expense{color:#dc2626;font-weight:600}
-    .foot{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
-    </style></head><body>
-    <div class="top">
-    <div>
-    <div class="brand">FinTrack</div>
-    <div class="meta">Laporan Keuangan · ${formatDate(start)} — ${formatDate(end)}</div>
-    </div>
-    <div style="font-size:11px;color:#9ca3af">Dicetak: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</div>
-    </div>
-    <div class="kpi">
-    <div class="kpi-card"><div class="kpi-label">Pemasukan</div><div class="kpi-value green">${formatRupiah(data.totalIncome)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Pengeluaran</div><div class="kpi-value red">${formatRupiah(data.totalExpense)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Selisih</div><div class="kpi-value">${data.balance>=0?'+':'−'}${formatRupiah(Math.abs(data.balance))}</div></div>
-    </div>
-    <h2>Pengeluaran per Kategori</h2>
-    <table><thead><tr><th>Kategori</th><th>Transaksi</th><th>Porsi</th><th>Total</th></tr></thead>
-    <tbody>${catRows(data.expenseByCategory)}</tbody></table>
-    <h2>Pemasukan per Kategori</h2>
-    <table><thead><tr><th>Kategori</th><th>Transaksi</th><th>Porsi</th><th>Total</th></tr></thead>
-    <tbody>${catRows(data.incomeByCategory)}</tbody></table>
-    <h2>Detail Transaksi (${data.transactions.length})</h2>
-    <table><thead><tr><th>Tanggal</th><th>Deskripsi</th><th>Kategori</th><th>Jumlah</th></tr></thead>
-    <tbody>${txRows}</tbody></table>
-    <div class="foot"><span>FinTrack</span><span>${data.transactions.length} transaksi · ${sanitize(start)} – ${sanitize(end)}</span></div>
-    </body></html>`)
-    win.document.close()
-    win.onload = () => { win.focus(); win.print() }
+  win.document.write(`<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
+  <title>Laporan Dompetin</title>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;padding:48px;font-size:13px;line-height:1.5}
+  .top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px;padding-bottom:20px;border-bottom:2px solid #111}
+  .brand{font-size:22px;font-weight:700;letter-spacing:-0.5px}
+  .meta{font-size:12px;color:#6b7280;margin-top:4px}
+  .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+  .kpi-card{padding:16px 20px;border-radius:10px;border:1px solid #e5e7eb}
+  .kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:6px}
+  .kpi-value{font-size:18px;font-weight:700}
+  .green{color:#059669}.red{color:#dc2626}
+  h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin:24px 0 10px;padding-bottom:8px;border-bottom:1px solid #f3f4f6}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;padding:8px 12px;background:#f9fafb;border-bottom:1px solid #f3f4f6}
+  td{padding:9px 12px;border-bottom:1px solid #f9fafb;font-size:12px}
+  .income{color:#059669;font-weight:600}.expense{color:#dc2626;font-weight:600}
+  .foot{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
+  </style></head><body>
+  <div class="top">
+  <div>
+  <div class="brand">Dompetin</div>
+  <div class="meta">Laporan Keuangan · ${formatDate(start)} — ${formatDate(end)}</div>
+  </div>
+  <div style="font-size:11px;color:#9ca3af">Dicetak: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</div>
+  </div>
+  <div class="kpi">
+  <div class="kpi-card"><div class="kpi-label">Pemasukan</div><div class="kpi-value green">${formatRupiah(data.totalIncome)}</div></div>
+  <div class="kpi-card"><div class="kpi-label">Pengeluaran</div><div class="kpi-value red">${formatRupiah(data.totalExpense)}</div></div>
+  <div class="kpi-card"><div class="kpi-label">Selisih</div><div class="kpi-value">${data.balance>=0?'+':'−'}${formatRupiah(Math.abs(data.balance))}</div></div>
+  </div>
+  <h2>Pengeluaran per Kategori</h2>
+  <table><thead><tr><th>Kategori</th><th>Transaksi</th><th>Porsi</th><th>Total</th></tr></thead>
+  <tbody>${catRows(data.expenseByCategory)}</tbody></table>
+  <h2>Pemasukan per Kategori</h2>
+  <table><thead><tr><th>Kategori</th><th>Transaksi</th><th>Porsi</th><th>Total</th></tr></thead>
+  <tbody>${catRows(data.incomeByCategory)}</tbody></table>
+  <h2>Detail Transaksi (${data.transactions.length})</h2>
+  <table><thead><tr><th>Tanggal</th><th>Deskripsi</th><th>Kategori</th><th>Jumlah</th></tr></thead>
+  <tbody>${txRows}</tbody></table>
+  <div class="foot"><span>Dompetin</span><span>${data.transactions.length} transaksi · ${sanitize(start)} – ${sanitize(end)}</span></div>
+  </body></html>`)
+  win.document.close()
+  win.onload = () => { win.focus(); win.print() }
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────

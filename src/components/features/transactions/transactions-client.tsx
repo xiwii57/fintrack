@@ -348,7 +348,7 @@ export default function TransactionsClient({
             </div>
 
             {/* Actions — hanya muncul saat hover (desktop), selalu visible di mobile */}
-            <div className="flex gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 sm:opacity-0 max-[640px]:opacity-100 transition-opacity">
+            <div className="flex gap-0.5 flex-shrink-0">
             <button
             onClick={() => setEditing(t)}
             title="Edit"

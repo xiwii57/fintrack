@@ -4,7 +4,7 @@ import { getProfile } from '@/actions/profile'
 import SettingsClient from '@/components/features/settings/settings-client'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = { title: 'Pengaturan — FinTrack' }
+export const metadata: Metadata = { title: 'Pengaturan — Dompetin' }
 
 export default async function SettingsPage() {
   const profile = await getProfile()

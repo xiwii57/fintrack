@@ -1,7 +1,8 @@
 // actions/auth.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, REMEMBER_COOKIE, COOKIE_MAX_AGE } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { headers } from 'next/headers'
@@ -39,9 +40,33 @@ export async function signInWithEmail(formData: FormData) {
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-  const supabase = await createClient()
+  const remember = formData.get('remember') === 'on'
+
+  // rememberOverride diteruskan di sini karena cookie flag REMEMBER_COOKIE
+  // belum sempat kita tulis saat createClient() ini dibuat — jadi setAll di
+  // dalamnya perlu tahu keputusannya secara eksplisit, bukan baca dari cookie
+  // yang belum ada.
+  const supabase = await createClient(remember)
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) return { error: error.message }
+
+  // Simpan pilihan "Ingat saya" sebagai cookie flag kecil terpisah, supaya
+  // middleware & request-request berikutnya tahu mau memperpanjang cookie
+  // sesi Supabase (30 hari rolling) atau membiarkannya sebagai session cookie.
+  const cookieStore = await cookies()
+  if (remember) {
+    cookieStore.set(REMEMBER_COOKIE, '1', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: COOKIE_MAX_AGE,
+    })
+  } else {
+    // Hapus sisa flag dari login sebelumnya (mis. user pernah centang lalu
+    // sekarang login lagi tanpa centang) supaya turun kembali ke session cookie.
+    cookieStore.delete(REMEMBER_COOKIE)
+  }
 
   // RPC idempotent (ON CONFLICT DO NOTHING) — aman dipanggil setiap login,
   // bukan cuma sekali. Ini jaring pengaman kalau kategori default gagal
@@ -105,6 +130,8 @@ export async function signUpWithEmail(formData: FormData) {
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
+  const cookieStore = await cookies()
+  cookieStore.delete(REMEMBER_COOKIE)
   redirect('/login')
 }
 

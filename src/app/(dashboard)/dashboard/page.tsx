@@ -1,3 +1,4 @@
+// app/(dashboard)/dashboard/page.tsx
 import { getDashboardData } from '@/actions/transaction'
 import { getGoals } from '@/actions/goal'
 import { getUser, getProfile } from '@/lib/supabase/server'

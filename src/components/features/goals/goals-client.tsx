@@ -113,7 +113,7 @@ export default function GoalsClient({
                     >
                     <Icon className="w-[18px] h-[18px]" style={{ color: goal.color }} />
                     </div>
-                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 max-[640px]:opacity-100 transition-opacity">
+                    <div className="flex gap-0.5">
                     <button
                     onClick={() => setEditing(goal)}
                     title="Edit"
